@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyTorch and Machine Learning
+*.pth
+*.pt
+*.ckpt
+
+# Datasets and data files
+data/
+
+# Coursework submission
+*.zip
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
