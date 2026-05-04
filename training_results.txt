@@ -1,0 +1,2 @@
+Best Validation Accuracy: 59.24%
+Final Training Accuracy: 95.92%
