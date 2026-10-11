@@ -4,7 +4,7 @@ from dataset import get_dataloaders
 from model import CustomPetNet
 
 def test():
-    # find out what hardware we're working with
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Testing on device: {device}")
 

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import OneCycleLR
+from torchvision import datasets, transforms
 from tqdm import tqdm
 import time
 import os
@@ -126,7 +127,7 @@ def train():
             print(f"--> Saving new best model with Val Acc: {val_acc:.2f}%")
             torch.save(model.state_dict(), 'best_model.pth')
 
-    # done training!
+    # done training
     total_time = time.time() - start_time
     print(f"\nTraining completed in {total_time//60:.0f}m {total_time%60:.0f}s")
     print(f"Best Validation Accuracy: {best_val_acc:.2f}%")
@@ -136,22 +137,42 @@ def train():
     # reload the best weights just to be sure
     model.load_state_dict(torch.load('best_model.pth'))
     model.eval()
-    
-    # tbh I should probably make a clean train loader without augments for this
-    # but the coursework doesn't seem to care, so I'll just reuse the augmented one
+
+    # evaluate on training images WITHOUT augmentations, as per coursework guidance
+    # random crops/flips can affect the score, so we use clean transforms here
+    # we replicate the exact same seed-42 split used during training to get the right indices
+    clean_transforms = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    clean_full = datasets.OxfordIIITPet(
+        root='./data', split='trainval', target_types='category',
+        download=False, transform=clean_transforms
+    )
+    val_size_eval = int(0.1 * len(clean_full))
+    train_size_eval = len(clean_full) - val_size_eval
+    gen_eval = torch.Generator().manual_seed(42)
+    train_clean_subset, _ = torch.utils.data.random_split(
+        clean_full, [train_size_eval, val_size_eval], generator=gen_eval
+    )
+    clean_train_loader = torch.utils.data.DataLoader(
+        train_clean_subset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0
+    )
+
     correct_train_final = 0
     total_train_final = 0
     with torch.no_grad():
-        for images, labels in train_loader:
+        for images, labels in clean_train_loader:
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total_train_final += labels.size(0)
             correct_train_final += (predicted == labels).sum().item()
-    
+
     final_train_acc = 100 * correct_train_final / total_train_final
-    print(f"Final Train Accuracy (for submission form): {final_train_acc:.2f}%")
-    
+    print(f"Final Train Accuracy: {final_train_acc:.2f}%")
+
     # dump the final stats to a file so I don't lose them
     with open("training_results.txt", "w") as f:
         f.write(f"Best Validation Accuracy: {best_val_acc:.2f}%\n")
